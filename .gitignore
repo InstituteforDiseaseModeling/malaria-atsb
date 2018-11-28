@@ -1,0 +1,4 @@
+*.pyc
+.idea/
+COMPS_log.log
+simtools.ini
