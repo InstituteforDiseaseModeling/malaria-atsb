@@ -11,7 +11,7 @@ from plotting.colors import load_color_palette
 mpl.rcParams['pdf.fonttype'] = 42
 
 
-rootdir = 'C:/Users/jkurlander/Dropbox (IDM)'
+rootdir = 'E:/Dropbox (IDM)'
 datadir = os.path.join(rootdir, 'Malaria Team Folder/data/Novel VC/ATSB/phase 2 data/merged_2018_07')
 plotdir = os.path.join(rootdir, 'Malaria Team Folder/projects/atsb/data_exploration_plots')
 
