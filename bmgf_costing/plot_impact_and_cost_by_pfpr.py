@@ -17,6 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
+from statsmodels.nonparametric.smoothers_lowess import lowess
 mpl.rcParams['pdf.fonttype'] = 42
 
 from plotting.colors import load_color_palette
@@ -42,24 +43,34 @@ def plot_cases_averted(df, name, baseline_channel, ignore_list, savename) :
 
     num_interventions = len(df['intervention'].unique()) - len(ignore_list)
 
+    sns.set_style('whitegrid', {'axes.linewidth' : 0.5})
     fig = plt.figure(name, figsize=(15,10))
     axes = [fig.add_subplot(num_interventions, 3, d + 1) for d in range(3*(num_interventions))]
     fig.subplots_adjust(left=0.05, right=0.98)
     palette = load_color_palette()
 
     for s, (site, sdf) in enumerate(df.groupby('Site_Name')):
+        sdf = sdf.sort_values(by='PfPR2to10')
         for d, datachannel in enumerate(['cases per 1000', 'infections per 1000', 'Blood_Smear_Parasite_Prevalence']):
             baseline = sdf[sdf['intervention'] == baseline_channel]
             for i, (intervention, idf) in enumerate(sdf[~(sdf['intervention'].isin(ignore_list))].groupby('intervention')) :
                 diff = [x - y for x, y in zip(baseline[datachannel], idf[datachannel])]
                 ax = axes[i*3+d]
-                ax.plot(baseline['PfPR2to10'], diff, '-', color=palette[s], label=site)
+                xvar = [y for x, y in zip(diff, baseline['PfPR2to10'].values) if (y > 0 and x >= 0)]
+                yvar = [x for x, y in zip(diff, baseline['PfPR2to10'].values) if (y > 0 and x >= 0)]
+                ys = lowess(yvar, xvar, frac=0.2)[:,1]
+                ax.plot(xvar, ys, '-', color=palette[s], label=site)
+                ax.scatter(xvar, yvar, 5, color=palette[s])
                 ax.set_title('%s %s' % (intervention, name))
                 ax.set_ylabel('%s averted' % datachannel)
                 if i == num_interventions-1 :
                     ax.set_xlabel('initial PfPR2to10')
+                if 'per' in datachannel :
+                    ax.set_ylim(-50, 3000)
+                else :
+                    ax.set_ylim(-0.002, 0.28)
 
-    axes[0].legend()
+    axes[-1].legend()
     fig.savefig(os.path.join(plotdir, '%s.png' % savename))
     fig.savefig(os.path.join(plotdir, '%s.pdf' % savename), format='PDF')
     plt.close(fig)
@@ -86,6 +97,7 @@ def plot_cost_per_case_averted(df, datachannel, savename):
 
     for s, (site, sdf) in enumerate(df.groupby('Site_Name')):
 
+        sdf = sdf.sort_values(by='PfPR2to10')
         ax = fig.add_subplot(3,3,s+1)
         baseline = sdf[sdf['intervention'] == 'itn']
 
@@ -96,13 +108,15 @@ def plot_cost_per_case_averted(df, datachannel, savename):
                                      'baseline_%s' % datachannel : baseline[datachannel].values,
                                      '%s_%s' % (intervention, datachannel) : idf[datachannel].values})
             minidf['diff'] = minidf['baseline_%s' % datachannel] - minidf['%s_%s' % (intervention, datachannel)]
-            mdf = minidf[minidf['diff'] > 0]
+            mdf = minidf[(minidf['diff'] >= 0) & (minidf['baseline PfPR2to10'] > 0)]
             palette = sns.color_palette(palettes[i], len(costs[intervention]))
 
             for c, single_cost in enumerate(costs[intervention]):
                 cost = single_cost*cost_scale_factors[intervention]
-                ax.plot(mdf['baseline PfPR2to10'],
-                        [cost/x for x in mdf['diff'].values],
+                xvar = mdf['baseline PfPR2to10'].values
+                yvar = [cost/x for x in mdf['diff'].values]
+                ys = lowess(yvar, xvar, frac=0.2)[:,1]
+                ax.plot(xvar, ys,
                         '-', color=palette[c], label='%s %.2f' % (intervention, single_cost))
         ax.set_yscale('log')
         ax.set_ylim(0.008, 1e5)
@@ -113,8 +127,9 @@ def plot_cost_per_case_averted(df, datachannel, savename):
         ax.set_title(site)
         if s == 7:
             ax.legend()
-    fig.savefig(os.path.join(plotdir, '%s_v_cost_per_%s_averted.png' % (savename, datachannel)))
-    fig.savefig(os.path.join(plotdir, '%s_v_cost_per_%s_averted.pdf' % (savename, datachannel)), format='PDF')
+    fig.savefig(os.path.join(plotdir, '%s_cost_per_%s_averted.png' % (savename, datachannel)))
+    fig.savefig(os.path.join(plotdir, '%s_cost_per_%s_averted.pdf' % (savename, datachannel)), format='PDF')
+    plt.close(fig)
 
 
 if __name__ == '__main__' :
