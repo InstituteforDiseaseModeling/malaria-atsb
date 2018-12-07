@@ -62,19 +62,20 @@ def simulation_setup(cb, species_details, site_vector_props, max_larval_capacity
 
 
 # itns
-def add_annual_itns(cb, year_count=1, coverage=0.8, start_day=0, initial_killing=0.3, IP=[]):
+def add_annual_itns(cb, year_count=1, coverage=0.8, start_day=0, initial_killing=0.3, discard_time=270, IP=[]):
 
     for year in range(year_count):
         add_ITN_age_season(cb,
                            coverage_all=coverage,
-                           discard={"halflife": 270},
+                           discard={"halflife": discard_time},
                            waning={'kill_initial': initial_killing},
                            start=(365 * year) + start_day,
                            ind_property_restrictions=IP)
 
     return {"ITN_Coverage": coverage,
             "ITN_Start": start_day,
-            "ITN_killing" : initial_killing}
+            "ITN_killing" : initial_killing,
+            'ITN_discard' : discard_time}
 
 
 # irs
