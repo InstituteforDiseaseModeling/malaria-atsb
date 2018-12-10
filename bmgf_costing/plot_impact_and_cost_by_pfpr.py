@@ -80,16 +80,18 @@ def plot_cost_per_case_averted(df, datachannel, savename):
 
     costs = { 'itn' : [1.85, 2.13, 2.3], # per person
               'llin' : [2.25, 2.5, 3], # per person
+              'llin_no_disc' : [2.25, 2.5, 3], # per person
               'irs' : [3, 4.8, 10], # per person
-              'atsb' : [0.1, 1, 10] } # per device
-    palettes = ['Blues', 'Reds', 'Greens']
+              'atsb' : [1, 3, 5] } # per device
+    palettes = ['Blues', 'Reds', 'Greens', 'Purples']
 
     # accounts for population, coverage, and distribution frequency. assume household size=5
     cost_scale_factors = {
-        'itn' : 2000*0.6,
-        'llin' : 2000*0.6,
+        'itn' : 2000*0.6/2,
+        'llin' : 2000*0.6/2,
+        'llin_no_disc' : 2000*0.6/2,
         'irs' : 2000*0.6*3,
-        'atsb' : 2000/5*12
+        'atsb' : 2000/5*12*0.6
     }
 
     fig = plt.figure(figsize=(10, 8))
@@ -134,7 +136,7 @@ def plot_cost_per_case_averted(df, datachannel, savename):
 
 if __name__ == '__main__' :
 
-    expt_name = "atsb_llin_v2"
+    expt_name = "atsb_llin_v3"
     data_fname = os.path.join(datadir, "%s.csv" % expt_name)
 
     df = load_sim_df(data_fname)

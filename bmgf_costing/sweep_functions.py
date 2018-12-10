@@ -101,9 +101,7 @@ def add_irs_group(cb, coverage=1.0, start_days=[0], decay=270):
 
 
 # atsb
-def add_atsb_by_coverage(cb, coverage=1, species_list=[]):
-
-    killing = 0.0337
+def add_atsb_by_coverage(cb, coverage=1, killing = 0.0337, species_list=[]):
 
     add_ATSB(cb, start = 5,
              coverage = coverage,

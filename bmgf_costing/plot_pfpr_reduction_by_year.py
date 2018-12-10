@@ -68,7 +68,7 @@ def plot_pfpr(df) :
 
 if __name__ == '__main__' :
 
-    expt_name = "atsb_llin_v2"
+    expt_name = "atsb_llin_v3"
     data_fname = os.path.join(datadir, "%s_pfpr.csv" % expt_name)
 
     df = load_sim_df(data_fname)

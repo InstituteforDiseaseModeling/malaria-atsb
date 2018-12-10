@@ -26,7 +26,7 @@ burnin_id = "96e9c858-a8ce-e811-a2bd-c4346bcb1555"
 asset_exp_id = "66d8416c-9fce-e811-a2bd-c4346bcb1555"
 
 intervention_coverages = [100]
-interventions = ["none", "atsb", 'itn', 'llin', 'irs', 'llin_no_disc']
+interventions = ["atsb_cdc", 'irs_180']
 num_runs = 40
 # hs_daily_probs = [0.15, 0.3, 0.7]
 
@@ -42,7 +42,7 @@ if run_type == "burnin":
     pull_from_serialization = False
 elif run_type == "intervention":
     years = 3
-    sweep_name = "ATSB_LLIN_multisite_noHS_v3"
+    sweep_name = "ATSB_LLIN_multisite_noHS_v4"
     serialize = False
     pull_from_serialization = True
 else:
@@ -119,8 +119,8 @@ def add_intervention(cb, intervention, species_details) :
                         start_day=5,
                         IP=[{"NetUsage": "LovesNets"}]
                         )
-    elif intervention == 'irs' :
-        add_irs_group(cb, coverage=60 / 100,
+    elif intervention == 'irs_180' :
+        add_irs_group(cb, coverage=60 / 100, decay=180,
                       start_days=[365 * start for start in range(years)])
         add_annual_itns(cb, year_count=1,
                         coverage=60. / 100,
@@ -128,8 +128,10 @@ def add_intervention(cb, intervention, species_details) :
                         start_day=5,
                         IP=[{"NetUsage": "LovesNets"}]
           )
-    elif intervention == 'atsb' :
-        add_atsb_by_coverage(cb, 60 / 100., list(species_details.keys()))
+    elif intervention == 'atsb_cdc' :
+        add_atsb_by_coverage(cb, 60 / 100.,
+                             killing=0.115,
+                             species_list=list(species_details.keys()))
         add_annual_itns(cb, year_count=1,
                         coverage=60. / 100,
                         initial_killing=0.3,
