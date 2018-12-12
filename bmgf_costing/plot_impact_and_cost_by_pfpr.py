@@ -44,7 +44,7 @@ def plot_cases_averted(df, name, baseline_channel, ignore_list, savename) :
     num_interventions = len(df['intervention'].unique()) - len(ignore_list)
 
     sns.set_style('whitegrid', {'axes.linewidth' : 0.5})
-    fig = plt.figure(name, figsize=(15,10))
+    fig = plt.figure(name, figsize=(15,5*(num_interventions/3)))
     axes = [fig.add_subplot(num_interventions, 3, d + 1) for d in range(3*(num_interventions))]
     fig.subplots_adjust(left=0.05, right=0.98)
     palette = load_color_palette()
@@ -66,9 +66,9 @@ def plot_cases_averted(df, name, baseline_channel, ignore_list, savename) :
                 if i == num_interventions-1 :
                     ax.set_xlabel('initial PfPR2to10')
                 if 'per' in datachannel :
-                    ax.set_ylim(-50, 3000)
+                    ax.set_ylim(-50, 4000)
                 else :
-                    ax.set_ylim(-0.002, 0.28)
+                    ax.set_ylim(-0.002, 0.4)
 
     axes[-1].legend()
     fig.savefig(os.path.join(plotdir, '%s.png' % savename))
@@ -82,7 +82,10 @@ def plot_cost_per_case_averted(df, datachannel, savename):
               'llin' : [2.25, 2.5, 3], # per person
               'llin_no_disc' : [2.25, 2.5, 3], # per person
               'irs' : [3, 4.8, 10], # per person
-              'atsb' : [1, 3, 5] } # per device
+              'irs_180' : [3, 4.8, 10], # per person
+              'atsb' : [1, 3, 5, 7],
+              'atsb_cdc' : [1, 3, 5, 7],
+              } # per device
     palettes = ['Blues', 'Reds', 'Greens', 'Purples']
 
     # accounts for population, coverage, and distribution frequency. assume household size=5
@@ -91,7 +94,9 @@ def plot_cost_per_case_averted(df, datachannel, savename):
         'llin' : 2000*0.6/2,
         'llin_no_disc' : 2000*0.6/2,
         'irs' : 2000*0.6*3,
-        'atsb' : 2000/5*12*0.6
+        'irs_180' : 2000*0.6*3,
+        'atsb' : 2000/5*12*0.6,
+        'atsb_cdc': 2000 / 5 * 12 * 0.6
     }
 
     fig = plt.figure(figsize=(10, 8))
@@ -121,7 +126,7 @@ def plot_cost_per_case_averted(df, datachannel, savename):
                 ax.plot(xvar, ys,
                         '-', color=palette[c], label='%s %.2f' % (intervention, single_cost))
         ax.set_yscale('log')
-        ax.set_ylim(0.008, 1e5)
+        ax.set_ylim(1e-1, 1e3)
         if s > 4:
             ax.set_xlabel('initial PfPR2to10')
         if s == 3:
@@ -136,7 +141,7 @@ def plot_cost_per_case_averted(df, datachannel, savename):
 
 if __name__ == '__main__' :
 
-    expt_name = "atsb_llin_v3"
+    expt_name = "atsb_llin_v3_v4"
     data_fname = os.path.join(datadir, "%s.csv" % expt_name)
 
     df = load_sim_df(data_fname)
@@ -144,7 +149,15 @@ if __name__ == '__main__' :
     savename = '%s_cases_averted_by_site' % expt_name
     plot_cases_averted(df, 'baseline', 'none', ['none'], '%s_v_baseline' % savename)
     plot_cases_averted(df, 'itn', 'itn', ['none', 'itn'], '%s_v_itn' % savename)
-    plot_cost_per_case_averted(df, 'New_Clinical_Cases', expt_name)
-    plot_cost_per_case_averted(df, 'New_Infections', expt_name)
+
+    interventions = ['none', 'itn', 'atsb_cdc', 'irs_180', 'llin_no_disc']
+    sdf = df[df['intervention'].isin(interventions)]
+    plot_cost_per_case_averted(sdf, 'New_Clinical_Cases', '%s_part1' % expt_name)
+    plot_cost_per_case_averted(sdf, 'New_Infections', '%s_part1' % expt_name)
+
+    interventions = ['none', 'itn', 'atsb', 'irs', 'llin']
+    sdf = df[df['intervention'].isin(interventions)]
+    plot_cost_per_case_averted(sdf, 'New_Clinical_Cases', '%s_part2' % expt_name)
+    plot_cost_per_case_averted(sdf, 'New_Infections', '%s_part2' % expt_name)
 
     plt.show()
