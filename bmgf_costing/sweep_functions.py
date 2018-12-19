@@ -7,7 +7,7 @@ import pdb
 
 from dtk.vector.species import set_params_by_species, set_species_param
 from dtk.interventions.habitat_scale import scale_larval_habitats
-from dtk.interventions.health_seeking import add_health_seeking
+from malaria.interventions.health_seeking import add_health_seeking
 from dtk.interventions.irs import add_IRS
 from dtk.interventions.itn_age_season import add_ITN_age_season
 from dtk.interventions.property_change import change_individual_property

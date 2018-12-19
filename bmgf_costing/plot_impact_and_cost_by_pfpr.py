@@ -80,11 +80,8 @@ def plot_cost_per_case_averted(df, datachannel, savename):
 
     costs = { 'itn' : [1.85, 2.13, 2.3], # per person
               'llin' : [2.25, 2.5, 3], # per person
-              'llin_no_disc' : [2.25, 2.5, 3], # per person
               'irs' : [3, 4.8, 10], # per person
-              'irs_180' : [3, 4.8, 10], # per person
               'atsb' : [1, 3, 5, 7],
-              'atsb_cdc' : [1, 3, 5, 7],
               } # per device
     palettes = ['Blues', 'Reds', 'Greens', 'Purples']
 
@@ -92,11 +89,8 @@ def plot_cost_per_case_averted(df, datachannel, savename):
     cost_scale_factors = {
         'itn' : 2000*0.6/2,
         'llin' : 2000*0.6/2,
-        'llin_no_disc' : 2000*0.6/2,
         'irs' : 2000*0.6*3,
-        'irs_180' : 2000*0.6*3,
         'atsb' : 2000/5*12*0.6,
-        'atsb_cdc': 2000 / 5 * 12 * 0.6
     }
 
     fig = plt.figure(figsize=(10, 8))
@@ -110,16 +104,17 @@ def plot_cost_per_case_averted(df, datachannel, savename):
 
         sdf = sdf[~(sdf['intervention'].isin(['none', 'itn']))]
         for i, (intervention, idf) in enumerate(sdf.groupby('intervention')):
+            intervention_type = intervention.split('_')[0]
 
             minidf = pd.DataFrame( { 'baseline PfPR2to10' : baseline['PfPR2to10'].values,
                                      'baseline_%s' % datachannel : baseline[datachannel].values,
                                      '%s_%s' % (intervention, datachannel) : idf[datachannel].values})
             minidf['diff'] = minidf['baseline_%s' % datachannel] - minidf['%s_%s' % (intervention, datachannel)]
             mdf = minidf[(minidf['diff'] >= 0) & (minidf['baseline PfPR2to10'] > 0)]
-            palette = sns.color_palette(palettes[i], len(costs[intervention]))
+            palette = sns.color_palette(palettes[i], len(costs[intervention_type]))
 
-            for c, single_cost in enumerate(costs[intervention]):
-                cost = single_cost*cost_scale_factors[intervention]
+            for c, single_cost in enumerate(costs[intervention_type]):
+                cost = single_cost*cost_scale_factors[intervention_type]
                 xvar = mdf['baseline PfPR2to10'].values
                 yvar = [cost/x for x in mdf['diff'].values]
                 ys = lowess(yvar, xvar, frac=0.2)[:,1]
@@ -141,7 +136,7 @@ def plot_cost_per_case_averted(df, datachannel, savename):
 
 if __name__ == '__main__' :
 
-    expt_name = "atsb_llin_v3_v4"
+    expt_name = "atsb_llin_HS_v1v2"
     data_fname = os.path.join(datadir, "%s.csv" % expt_name)
 
     df = load_sim_df(data_fname)
@@ -150,14 +145,19 @@ if __name__ == '__main__' :
     plot_cases_averted(df, 'baseline', 'none', ['none'], '%s_v_baseline' % savename)
     plot_cases_averted(df, 'itn', 'itn', ['none', 'itn'], '%s_v_itn' % savename)
 
-    interventions = ['none', 'itn', 'atsb_cdc', 'irs_180', 'llin_no_disc']
+    interventions = ['none', 'itn', 'atsb_cdc', 'atsb_hlc', 'irs_180']
     sdf = df[df['intervention'].isin(interventions)]
     plot_cost_per_case_averted(sdf, 'New_Clinical_Cases', '%s_part1' % expt_name)
     plot_cost_per_case_averted(sdf, 'New_Infections', '%s_part1' % expt_name)
 
-    interventions = ['none', 'itn', 'atsb', 'irs', 'llin']
+    interventions = ['none', 'itn', 'llin_no_disc', 'llin']
     sdf = df[df['intervention'].isin(interventions)]
     plot_cost_per_case_averted(sdf, 'New_Clinical_Cases', '%s_part2' % expt_name)
     plot_cost_per_case_averted(sdf, 'New_Infections', '%s_part2' % expt_name)
+
+    interventions = ['none', 'itn', 'atsb_alone_hlc', 'atsb_alone_cdc']
+    sdf = df[df['intervention'].isin(interventions)]
+    plot_cost_per_case_averted(sdf, 'New_Clinical_Cases', '%s_part3' % expt_name)
+    plot_cost_per_case_averted(sdf, 'New_Infections', '%s_part3' % expt_name)
 
     plt.show()

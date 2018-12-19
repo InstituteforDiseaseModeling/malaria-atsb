@@ -12,7 +12,7 @@ if __name__ == "__main__":
     sites = pd.read_csv("site_details.csv")
 
     experiments = {
-                   "atsb_llin_v4" :"71dbee13-b0fc-e811-a2bd-c4346bcb1555"
+                   "atsb_llin_HS_v2" :"285429ad-9d03-e911-a2bd-c4346bcb1555"
                    }
 
     for expt_name, exp_id in experiments.items():
