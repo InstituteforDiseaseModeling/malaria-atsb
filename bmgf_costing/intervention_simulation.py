@@ -1,9 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
-import pdb
 import json
-import math
 
 from simtools.ExperimentManager.ExperimentManagerFactory import ExperimentManagerFactory
 from simtools.SetupParser import SetupParser
@@ -11,12 +9,11 @@ from simtools.Utilities.COMPSUtilities import get_asset_collection
 
 from dtk.utils.core.DTKConfigBuilder import DTKConfigBuilder
 from simtools.ModBuilder import ModBuilder, ModFn
-from simtools.DataAccess.ExperimentDataStore import ExperimentDataStore
 from simtools.Utilities.COMPSUtilities import COMPS_login
 
 from malaria.reports.MalariaReport import add_summary_report, add_event_counter_report
-from dtk.utils.reports.VectorReport import add_vector_stats_report
 from simtools.Utilities.Experiments import retrieve_experiment
+from malaria.interventions.health_seeking import add_health_seeking
 
 from sweep_functions import *
 
@@ -26,7 +23,7 @@ burnin_id = "96e9c858-a8ce-e811-a2bd-c4346bcb1555"
 asset_exp_id = "66d8416c-9fce-e811-a2bd-c4346bcb1555"
 
 intervention_coverages = [100]
-interventions = ["none", "atsb", 'itn', 'llin', 'irs']
+interventions = ["llin_no_disc"]
 num_runs = 40
 # hs_daily_probs = [0.15, 0.3, 0.7]
 
@@ -42,7 +39,7 @@ if run_type == "burnin":
     pull_from_serialization = False
 elif run_type == "intervention":
     years = 3
-    sweep_name = "ATSB_LLIN_multisite_noHS_v2"
+    sweep_name = "ATSB_LLIN_multisite_withHS_v2"
     serialize = False
     pull_from_serialization = True
 else:
@@ -61,25 +58,9 @@ cb = DTKConfigBuilder.from_defaults("MALARIA_SIM",
                                     Num_Cores=1,
 
                                     # interventions
-                                    Valid_Intervention_States=[],  # apparently a necessary parameter
-                                    # todo: do I need listed events?
-                                    Listed_Events=["Bednet_Discarded", "Bednet_Got_New_One", "Bednet_Using", "Received_Vaccine"],
                                     Enable_Default_Reporting=0,
                                     Enable_Demographics_Risk=1,
                                     Enable_Vector_Species_Report=0,
-
-                                    # ento from prashanth
-                                    Antigen_Switch_Rate=pow(10, -9.116590124),
-                                    Base_Gametocyte_Production_Rate=0.06150582,
-                                    Base_Gametocyte_Mosquito_Survival_Rate=0.002011099,
-                                    Falciparum_MSP_Variants=32,
-                                    Falciparum_Nonspecific_Types=76,
-                                    Falciparum_PfEMP1_Variants=1070,
-                                    Gametocyte_Stage_Survival_Rate=0.588569307,
-                                    MSP1_Merozoite_Kill_Fraction=0.511735322,
-                                    Max_Individual_Infections=3,
-                                    Nonspecific_Antigenicity_Factor=0.415111634,
-
                                     )
 
 cb.update_params({"Disable_IP_Whitelist": 1,
@@ -93,6 +74,16 @@ if serialize:
     cb.update_params({"Serialization_Time_Steps": [365*years]})
 
 assign_net_ip(cb, hates_net_prop)
+add_health_seeking(cb, start_day=0,
+                   drug=['Artemether', 'Lumefantrine'],
+                   targets=[
+                       {'trigger': 'NewClinicalCase', 'coverage': 0.5, 'agemin': 0, 'agemax': 5, 'seek': 1,
+                        'rate': 0.3},
+                       {'trigger': 'NewClinicalCase', 'coverage': 0.3, 'agemin': 5, 'agemax': 100, 'seek': 1,
+                        'rate': 0.3},
+                       {'trigger': 'NewSevereCase', 'coverage': 0.7, 'agemin': 0, 'agemax': 100, 'seek': 1,
+                        'rate': 0.5}]
+                   )
 
 
 def add_intervention(cb, intervention, species_details) :
@@ -107,12 +98,20 @@ def add_intervention(cb, intervention, species_details) :
     elif intervention == 'llin' :
         add_annual_itns(cb, year_count=1,
                         coverage=60. / 100,
-                        initial_killing=0.6,
+                        initial_killing=0.8,
                         start_day=5,
                         IP=[{"NetUsage": "LovesNets"}]
           )
-    elif intervention == 'irs' :
-        add_irs_group(cb, coverage=60 / 100,
+    elif intervention == 'llin_no_disc':
+        add_annual_itns(cb, year_count=1,
+                        coverage=60. / 100,
+                        initial_killing=0.8,
+                        discard_time=365*50,
+                        start_day=5,
+                        IP=[{"NetUsage": "LovesNets"}]
+                        )
+    elif intervention == 'irs_180' :
+        add_irs_group(cb, coverage=60 / 100, decay=180,
                       start_days=[365 * start for start in range(years)])
         add_annual_itns(cb, year_count=1,
                         coverage=60. / 100,
@@ -120,14 +119,34 @@ def add_intervention(cb, intervention, species_details) :
                         start_day=5,
                         IP=[{"NetUsage": "LovesNets"}]
           )
-    elif intervention == 'atsb' :
-        add_atsb_by_coverage(cb, 100 / 100., list(species_details.keys()))
+    elif intervention == 'atsb_cdc' :
+        add_atsb_by_coverage(cb, 60 / 100.,
+                             killing=0.115,
+                             species_list=list(species_details.keys()))
         add_annual_itns(cb, year_count=1,
                         coverage=60. / 100,
                         initial_killing=0.3,
                         start_day=5,
                         IP=[{"NetUsage": "LovesNets"}]
           )
+    elif intervention == 'atsb_hlc':
+        add_atsb_by_coverage(cb, 60 / 100.,
+                             killing=0.0337,
+                             species_list=list(species_details.keys()))
+        add_annual_itns(cb, year_count=1,
+                        coverage=60. / 100,
+                        initial_killing=0.3,
+                        start_day=5,
+                        IP=[{"NetUsage": "LovesNets"}]
+                        )
+    elif intervention == 'atsb_alone_cdc' :
+        add_atsb_by_coverage(cb, 60 / 100.,
+                             killing=0.115,
+                             species_list=list(species_details.keys()))
+    elif intervention == 'atsb_alone_hlc':
+        add_atsb_by_coverage(cb, 60 / 100.,
+                             killing = 0.0337,
+                             species_list = list(species_details.keys()))
 
     return {'intervention' : intervention}
 

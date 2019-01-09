@@ -7,7 +7,7 @@ import pdb
 
 from dtk.vector.species import set_params_by_species, set_species_param
 from dtk.interventions.habitat_scale import scale_larval_habitats
-from dtk.interventions.health_seeking import add_health_seeking
+from malaria.interventions.health_seeking import add_health_seeking
 from dtk.interventions.irs import add_IRS
 from dtk.interventions.itn_age_season import add_ITN_age_season
 from dtk.interventions.property_change import change_individual_property
@@ -62,19 +62,20 @@ def simulation_setup(cb, species_details, site_vector_props, max_larval_capacity
 
 
 # itns
-def add_annual_itns(cb, year_count=1, coverage=0.8, start_day=0, initial_killing=0.3, IP=[]):
+def add_annual_itns(cb, year_count=1, coverage=0.8, start_day=0, initial_killing=0.3, discard_time=270, IP=[]):
 
     for year in range(year_count):
         add_ITN_age_season(cb,
                            coverage_all=coverage,
-                           discard={"halflife": 270},
+                           discard={"halflife": discard_time},
                            waning={'kill_initial': initial_killing},
                            start=(365 * year) + start_day,
                            ind_property_restrictions=IP)
 
     return {"ITN_Coverage": coverage,
             "ITN_Start": start_day,
-            "ITN_killing" : initial_killing}
+            "ITN_killing" : initial_killing,
+            'ITN_discard' : discard_time}
 
 
 # irs
@@ -100,9 +101,7 @@ def add_irs_group(cb, coverage=1.0, start_days=[0], decay=270):
 
 
 # atsb
-def add_atsb_by_coverage(cb, coverage=1, species_list=[]):
-
-    killing = 0.0337
+def add_atsb_by_coverage(cb, coverage=1, killing = 0.0337, species_list=[]):
 
     add_ATSB(cb, start = 5,
              coverage = coverage,
